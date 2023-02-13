@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import warnings
 from tqdm import tqdm
 import os
+from copy import deepcopy
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 from tqdm.auto import tqdm
@@ -301,11 +302,10 @@ class AutoEncoderCNN(nn.Module):
         y = y.transpose(dim0=3, dim1=1) # switch dim1 and dim3 back
         return y, latent
 
-    def fit(self, train_dataset, valid_dataset):
+    def fit(self, dataset, validation_split: float = 0.15):
         '''
 
-        :param train_dataset: torch Dataset class containing tokenized training data (int64 tensors)
-        :param valid_dataset: torch Dataset class containing tokenized validation data (int64 tensors)
+        :param dataset: torch Dataset class containing tokenized training data (int64 tensors)
         :return: None. trains the encoder and decoder in place.
         '''
 
@@ -320,33 +320,17 @@ class AutoEncoderCNN(nn.Module):
         optimizer_dec = torch.optim.Adam(self.decoder.parameters(),
                                          lr=self.lr)
 
-        # reduce the batch-size if it's bigger than the number of samples.
-        if len(valid_dataset) < self.batch_size:
-            warnings.warn("Validation dataset is smaller than batch_size"
-                          ". \nBatch_size: {} validation_size: {}"
-                          ". \nReducing validation batch size to {}".format(
-                self.batch_size, len(valid_dataset), len(valid_dataset)
-            ))
-            valid_batch_size = len(valid_dataset)
-        else:
-            valid_batch_size = self.batch_size
-
-        if len(train_dataset) < self.batch_size:
-            warnings.warn("Training dataset is smaller than batch_size"
-                          ". \nBatch_size: {} training_size: {}"
-                          ". \nReducing training batch size to {}".format(
-                self.batch_size, len(train_dataset), len(train_dataset)
-            ))
-            train_batch_size = len(train_dataset)
-        else:
-            train_batch_size = self.batch_size
+        valid_dataset = deepcopy(dataset)
+        valid_dataset.X = dataset.X[int(validation_split * len(dataset)):]
+        train_dataset = dataset
+        train_dataset.X = train_dataset.X[:int(validation_split * len(dataset))]
 
         training_loader = DataLoader(train_dataset,
-                                     batch_size=train_batch_size,
+                                     batch_size=self.batch_size,
                                      shuffle=True, drop_last=True)
 
         valid_loader = DataLoader(valid_dataset,
-                                  batch_size=valid_batch_size,
+                                  batch_size=self.batch_size,
                                   shuffle=True, drop_last=True)
 
         enc_scheduler = MultiStepLR(optimizer_enc, milestones=[100, 150], gamma=0.25)

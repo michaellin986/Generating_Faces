@@ -15,7 +15,7 @@ class UKTDataset(Dataset):
         super(UKTDataset, self).__init__()
 
         X = []
-        for f in tqdm(os.listdir(data_path), desc="Loading UKT dataset to memory"):
+        for f in tqdm(os.listdir(data_path)[0:1000], desc="Loading UKT dataset to memory"):
             filename = os.path.join(data_path, f)
             image = Image.open(filename)
             # resize image

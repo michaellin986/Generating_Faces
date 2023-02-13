@@ -33,7 +33,7 @@ class EarlyStopper:
                 return True
         return False
 
-class CNN(nn.Module):
+class EncoderCNN(nn.Module):
     """
     For input [3 x 128 x 160]
 
@@ -90,7 +90,7 @@ class CNN(nn.Module):
         h = in_height
         w = in_width
 
-        super(CNN, self).__init__()
+        super().__init__()
 
         #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -139,9 +139,7 @@ class CNN(nn.Module):
         self.d_fc1 = nn.Dropout(p=dropout)
         self.r1 = nn.ReLU()
         self.fc2 = nn.Linear(128, latent_size)
-        self.to(self.device)
 
-class EncoderCNN(CNN):
     def forward(self, x):
         x = self.c1(x)
         x = self.m1(x)
@@ -164,17 +162,77 @@ class EncoderCNN(CNN):
         x = self.d_fc1(x)
         x = self.r1(x)
         x = self.fc2(x)
-        return x.flatten()
+        return x
 
-class DecoderCNN(CNN):
+
+class DecoderCNN(nn.Module):
+
+    def __init__(self,
+                 in_height: int,
+                 in_width: int,
+                 dropout: float = 0.1,
+                 latent_size: int = 128):
+
+        h = in_height
+        w = in_width
+
+        super().__init__()
+
+        self.c1 = nn.Conv2d(kernel_size=3,
+                            in_channels=8,
+                            out_channels=3,
+                            stride=1,
+                            padding=1)
+
+        self.m1 = nn.Upsample(scale_factor=(2, 2))
+        self.d1 = nn.Dropout(p=dropout)
+        self.rc1 = nn.ReLU()
+
+        self.c2 = nn.Conv2d(kernel_size=3,
+                            in_channels=8,
+                            out_channels=8,
+                            stride=1,
+                            padding=1)
+
+        self.m2 = nn.Upsample(scale_factor=(2, 2))
+        self.d2 = nn.Dropout(p=dropout)
+        self.rc2 = nn.ReLU()
+
+        self.c3 = nn.Conv2d(kernel_size=3,
+                            in_channels=8,
+                            out_channels=8,
+                            stride=1,
+                            padding=1)
+
+        self.m3 = nn.Upsample(scale_factor=(2, 2))
+        self.d3 = nn.Dropout(p=dropout)
+        self.rc3 = nn.ReLU()
+
+        self.c4 = nn.Conv2d(kernel_size=3,
+                            in_channels=8,
+                            out_channels=8,
+                            stride=1,
+                            padding=1)
+
+        self.m4 = nn.Upsample(scale_factor=(2, 2))
+        self.d4 = nn.Dropout(p=dropout)
+        self.rc4 = nn.ReLU()
+
+        h = int(h/16)
+        w = int(w/16)
+        self.fc1 = nn.Linear(128, h * w * 8)
+        self.d_fc1 = nn.Dropout(p=dropout)
+        self.r1 = nn.ReLU()
+        self.fc2 = nn.Linear(latent_size, 128)
+
     def forward(self, x):
         x = self.fc2(x)
         x = self.r1(x)
         x = self.d_fc1(x)
         x = self.fc1(x)
-        x = x.reshape(8, 16, 10)
         x = self.rc4(x)
         x = self.d4(x)
+        x = x.view(x.shape[0], 8, 16, 16)
         x = self.m4(x)
         x = self.c4(x)
         x = self.rc3(x)
@@ -191,6 +249,7 @@ class DecoderCNN(CNN):
         x = self.c1(x)
         return x
 
+
 class AutoEncoderCNN(nn.Module):
 
     def __init__(self, image_height: int = 512,
@@ -201,20 +260,22 @@ class AutoEncoderCNN(nn.Module):
                  verbose='vv',
                  max_iter=200,
                  early_stop=5,
-                 tol=1e-6):
+                 tol=1e-6,
+                 use_learning_schedule=True):
 
         super().__init__()
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
 
-        self.hidden_size = encoder.hidden_size
+        self.hidden_size = latent_size
         self.encoder = EncoderCNN(in_height=image_height, in_width=image_width, latent_size=latent_size)
         self.decoder = DecoderCNN(in_height=image_height, in_width=image_width, latent_size=latent_size)
 
         self.batch_size = batch_size
         self.verbose = verbose
         self.max_iter = max_iter
+        self.use_learning_schedule = use_learning_schedule
 
         self.lr = lr
         self.tol = tol
@@ -234,9 +295,10 @@ class AutoEncoderCNN(nn.Module):
         :param x: input features to the encoder model
         :return: output of the decoder
         """
-        x = x.view(x.shape[0], x.shape[1], -1)
+        x = x.transpose(dim0=3, dim1=1) # torch needs channel at dim1. We have at dim3
         latent = self.encoder(x)
         y = self.decoder(latent)
+        y = y.transpose(dim0=3, dim1=1) # switch dim1 and dim3 back
         return y, latent
 
     def fit(self, train_dataset, valid_dataset):
@@ -253,12 +315,10 @@ class AutoEncoderCNN(nn.Module):
         criterion.to(self.device)
 
         optimizer_enc = torch.optim.Adam(self.encoder.parameters(),
-                                         lr=self.encoder_lr,
-                                         weight_decay=self.encoder.l2)
+                                         lr=self.lr)
 
         optimizer_dec = torch.optim.Adam(self.decoder.parameters(),
-                                         lr=self.lr,
-                                         weight_decay=self.decoder.l2)
+                                         lr=self.lr)
 
         # reduce the batch-size if it's bigger than the number of samples.
         if len(valid_dataset) < self.batch_size:
@@ -308,26 +368,17 @@ class AutoEncoderCNN(nn.Module):
 
         for epoch in range(self.max_iter):
             tloss = []
-            for Xbatch, ybatch in progbar(training_loader):
+            for Xbatch in progbar(training_loader):
 
                 Xbatch = Xbatch.to(self.device)
-                ybatch = ybatch.to(self.device)
 
                 optimizer_enc.zero_grad()
                 optimizer_dec.zero_grad()
 
-                input_length = Xbatch.shape[1]
-
-                Xbatch = Xbatch.view(train_batch_size, input_length, -1)
-
                 # with torch.autocast(device_type=device_str, dtype=torch.float16): # mixed precision
                 outputs, enc_hidden = self(Xbatch)
 
-                if len(outputs.shape) == 3 and len(ybatch.shape) == 2:  # need to flatten seq outputs to fit in CEloss
-                    outputs = torch.flatten(outputs, start_dim=0, end_dim=1)
-                    ybatch = torch.flatten(ybatch, start_dim=0, end_dim=1)
-
-                loss = criterion(outputs, ybatch)
+                loss = criterion(outputs, Xbatch)
 
                 loss.backward()
                 optimizer_dec.step()
@@ -336,17 +387,13 @@ class AutoEncoderCNN(nn.Module):
 
             vloss = []
             with torch.no_grad():
-                for Xbatch, ybatch in valid_loader:
+                for Xbatch in valid_loader:
                     Xbatch = Xbatch.to(self.device)
-                    ybatch = ybatch.to(self.device)
-
-                    input_length = Xbatch.shape[1]
-                    Xbatch = Xbatch.view(valid_batch_size, input_length, -1)
 
                     # with torch.autocast(device_type=device_str, dtype=torch.float16):
                     outputs, _ = self(Xbatch)
 
-                    loss = criterion(outputs, ybatch)
+                    loss = criterion(outputs, Xbatch)
 
                     vloss.append(loss.detach().cpu().item())
 
@@ -375,8 +422,7 @@ class AutoEncoderCNN(nn.Module):
                           (epoch + 1, ave_train_loss, ave_valid_loss))
 
             if self.use_learning_schedule:
-                if not self.freeze_encoder_training:
-                    enc_scheduler.step()
+                enc_scheduler.step()
                 dec_scheduler.step()
 
         if self.verbose == 'v' or self.verbose == 'vv':

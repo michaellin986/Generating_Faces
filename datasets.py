@@ -9,13 +9,13 @@ import torch
 class UKTDataset(Dataset):
 
     def __init__(self, data_path: str = "./archive/UKTFace/",
-                    image_height: int = 160,
-                    image_width: int = 128):
+                    image_height: int = 512,
+                    image_width: int = 512):
 
         super(UKTDataset, self).__init__()
 
         X = []
-        for f in tqdm(os.listdir(data_path)[0:1000], desc="Loading UKT dataset to memory"):
+        for f in tqdm(os.listdir(data_path)[0:10000], desc="Loading UKT dataset to memory"):
             filename = os.path.join(data_path, f)
             image = Image.open(filename)
             # resize image

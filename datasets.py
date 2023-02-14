@@ -15,11 +15,11 @@ class UKTDataset(Dataset):
         super(UKTDataset, self).__init__()
 
         X = []
-        for f in tqdm(os.listdir(data_path)[0:10000], desc="Loading UKT dataset to memory"):
+        for f in tqdm(os.listdir(data_path)[0:20000], desc="Loading UKT dataset to memory"):
             filename = os.path.join(data_path, f)
             image = Image.open(filename)
             # resize image
-            image = image.resize((image_width,image_height), Image.Resampling.LANCZOS)
+            image = image.resize((image_width, image_height), Image.Resampling.LANCZOS)
             # turn to numpy array
             data = np.asarray(image)
             # min-max scale
@@ -28,6 +28,7 @@ class UKTDataset(Dataset):
             X.append(torchify)
         
         self.X = torch.cat(X, dim=0)
+        self.X = self.X.mean(dim=3).unsqueeze(-1)
         print(self.X.shape)
 
     def __len__(self):

@@ -95,76 +95,127 @@ class EncoderCNN(nn.Module):
 
         #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.c1 = nn.Conv2d(kernel_size=3,
-                            in_channels=3,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
-        self.m1 = nn.MaxPool2d(kernel_size=2)
-        self.d1 = nn.Dropout(p=dropout)
-        self.rc1 = nn.ReLU()
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, in_channels=1, out_channels=128,
+                            stride=1, padding=1),
+            nn.BatchNorm2d(128),
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.c2 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer2 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
 
-        self.m2 = nn.MaxPool2d(kernel_size=2)
-        self.d2 = nn.Dropout(p=dropout)
-        self.rc2 = nn.ReLU()
+        self.layer3 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2)
+                )
 
-        self.c3 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer4 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU(),
+                )
 
-        self.m3 = nn.MaxPool2d(kernel_size=2)
-        self.d3 = nn.Dropout(p=dropout)
-        self.rc3 = nn.ReLU()
+        self.layer5 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
 
-        self.c4 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer6 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2)
+                )
 
-        self.m4 = nn.MaxPool2d(kernel_size=2)
-        self.d4 = nn.Dropout(p=dropout)
-        self.rc4 = nn.ReLU()
+        self.layer7 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
 
-        h = int(h/16)
-        w = int(w/16)
-        self.fc1 = nn.Linear(h * w * 8, 128)
+        self.layer8 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
+
+        self.layer9 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2)
+                )
+
+        self.layer10 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
+
+        self.layer11 = nn.Sequential(
+                    nn.Conv2d(kernel_size=3, in_channels=128, out_channels=128,
+                                    stride=1, padding=1),
+                    nn.BatchNorm2d(128),
+                    nn.Dropout(p=dropout),
+                    nn.ReLU()
+                )
+
+        self.fc1 = nn.Linear(h * w * 2, 512)
         self.d_fc1 = nn.Dropout(p=dropout)
         self.r1 = nn.ReLU()
-        self.fc2 = nn.Linear(128, latent_size)
+        self.fc2 = nn.Linear(512, latent_size)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    def forward(self, x):
-        x = self.c1(x)
-        x = self.m1(x)
-        x = self.d1(x)
-        x = self.rc1(x)
-        x = self.c2(x)
-        x = self.m2(x)
-        x = self.d2(x)
-        x = self.rc2(x)
-        x = self.c3(x)
-        x = self.m3(x)
-        x = self.d3(x)
-        x = self.rc3(x)
-        x = self.c4(x)
-        x = self.m4(x)
-        x = self.d4(x)
-        x = self.rc4(x)
+    def forward(self, x, use_cpu=False):
+        if use_cpu:
+            x = x.to(self.device)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.layer5(x)
+        x = self.layer6(x)
+        x = self.layer7(x)
+        x = self.layer8(x)
+        x = self.layer9(x)
+        x = self.layer10(x)
+        x = self.layer11(x)
+
         x = x.reshape(x.size(0), -1)
         x = self.fc1(x)
         x = self.d_fc1(x)
         x = self.r1(x)
         x = self.fc2(x)
+        if use_cpu:
+            x = x.cpu() # return to cpu
         return x
-
 
 class DecoderCNN(nn.Module):
 
@@ -179,75 +230,158 @@ class DecoderCNN(nn.Module):
 
         super().__init__()
 
-        self.c1 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=3,
-                            stride=1,
-                            padding=1)
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128,
+                      out_channels=1,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(1),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.m1 = nn.Upsample(scale_factor=(2, 2))
-        self.d1 = nn.Dropout(p=dropout)
-        self.rc1 = nn.ReLU()
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.c2 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer3 = nn.Sequential(
+            nn.Upsample(scale_factor=(2, 2)),
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.m2 = nn.Upsample(scale_factor=(2, 2))
-        self.d2 = nn.Dropout(p=dropout)
-        self.rc2 = nn.ReLU()
+        self.layer4 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.c3 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer5 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.m3 = nn.Upsample(scale_factor=(2, 2))
-        self.d3 = nn.Dropout(p=dropout)
-        self.rc3 = nn.ReLU()
+        self.layer6 = nn.Sequential(
+            nn.Upsample(scale_factor=(2, 2)),
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.c4 = nn.Conv2d(kernel_size=3,
-                            in_channels=8,
-                            out_channels=8,
-                            stride=1,
-                            padding=1)
+        self.layer7 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        self.m4 = nn.Upsample(scale_factor=(2, 2))
-        self.d4 = nn.Dropout(p=dropout)
-        self.rc4 = nn.ReLU()
+        self.layer8 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
 
-        h = int(h/16)
-        w = int(w/16)
-        self.fc1 = nn.Linear(128, h * w * 8)
+        self.layer9 = nn.Sequential(
+            nn.Upsample(scale_factor=(2, 2)),
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
+
+        self.layer10 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
+
+        self.layer11 = nn.Sequential(
+            nn.Conv2d(kernel_size=3, 
+                      in_channels=128, 
+                      out_channels=128,
+                      stride=1, padding=1),
+            nn.BatchNorm2d(128),                     
+            nn.Dropout(p=dropout),
+            nn.ReLU()
+        )
+
+        h = int(h)
+        w = int(w)
+        self.h = h
+        self.w = w
+        self.fc1 = nn.Linear(512, h * w * 2)
         self.d_fc1 = nn.Dropout(p=dropout)
         self.r1 = nn.ReLU()
-        self.fc2 = nn.Linear(latent_size, 128)
+        self.fc2 = nn.Linear(latent_size, 512)
+        self.r2 = nn.ReLU()
 
-    def forward(self, x):
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    def forward(self, x, use_cpu=False):
+        if use_cpu:
+            x = x.to(self.device)
+
         x = self.fc2(x)
+        x = self.r2(x)
+        x = self.d_fc1(x)
+
+        x = self.fc1(x)
         x = self.r1(x)
         x = self.d_fc1(x)
-        x = self.fc1(x)
-        x = self.rc4(x)
-        x = self.d4(x)
-        x = x.view(x.shape[0], 8, 16, 16)
-        x = self.m4(x)
-        x = self.c4(x)
-        x = self.rc3(x)
-        x = self.d3(x)
-        x = self.m3(x)
-        x = self.c3(x)
-        x = self.rc2(x)
-        x = self.d2(x)
-        x = self.m2(x)
-        x = self.c2(x)
-        x = self.rc1(x)
-        x = self.d1(x)
-        x = self.m1(x)
-        x = self.c1(x)
+        x = x.view(x.shape[0], 128, int(self.h/8), int(self.w/8))
+
+        x = self.layer11(x)
+        x = self.layer10(x)
+        x = self.layer9(x)
+        x = self.layer8(x)
+        x = self.layer7(x)
+        x = self.layer6(x)
+        x = self.layer5(x)
+        x = self.layer4(x)
+        x = self.layer3(x)
+        x = self.layer2(x)
+        x = self.layer1(x)
+
+        if use_cpu:
+            x = x.cpu() # return to cpu
         return x
 
 
@@ -323,7 +457,8 @@ class AutoEncoderCNN(nn.Module):
         valid_dataset = deepcopy(dataset)
         valid_dataset.X = dataset.X[int(validation_split * len(dataset)):]
         train_dataset = dataset
-        train_dataset.X = train_dataset.X[:int(validation_split * len(dataset))]
+        train_dataset.X = train_dataset.X[:int((1 - validation_split) * len(dataset))]
+        print('train size: ', len(train_dataset))
 
         training_loader = DataLoader(train_dataset,
                                      batch_size=self.batch_size,

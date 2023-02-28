@@ -236,8 +236,6 @@ class DecoderCNN(nn.Module):
                       out_channels=1,
                       stride=1, padding=1),
             nn.BatchNorm2d(1),                     
-            nn.Dropout(p=dropout),
-            nn.ReLU()
         )
 
         self.layer2 = nn.Sequential(
@@ -293,7 +291,7 @@ class DecoderCNN(nn.Module):
         )
 
         self.layer7 = nn.Sequential(
-            nn.Conv2d(kernel_size=3, 
+            nn.Conv2d(kernel_size=3,
                       in_channels=128, 
                       out_channels=128,
                       stride=1, padding=1),
@@ -383,7 +381,6 @@ class DecoderCNN(nn.Module):
         if use_cpu:
             x = x.cpu() # return to cpu
         return x
-
 
 class AutoEncoderCNN(nn.Module):
 

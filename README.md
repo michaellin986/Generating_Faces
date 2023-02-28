@@ -16,4 +16,4 @@ Manual option:
 
 2) Running the program
 
-run main.py
+run main.py to train model 

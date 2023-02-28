@@ -1,12 +1,21 @@
 #%%
 from datasets import UKTDataset
 from autoencoder import AutoEncoderCNN
+from basic_autoencoder import AutoEncoderFF
 from PIL import Image
 import numpy as np
 
 if __name__ == '__main__':
     data_path = './UTKFace/UTKFace/'
-    dataset = UKTDataset(data_path, image_height=128, image_width=128)
+    dataset = UKTDataset(data_path, image_height=128, image_width=128, limit=100)
+
+    auto_encoder = AutoEncoderFF(image_height=128,
+                                  image_width=128,
+                                  #latent_size=latent_size,
+                                  early_stop=10,
+                                  batch_size=16,
+                                  lr=1e-3,
+                                  max_iter=1000)
 
     latent_size = 256
     auto_encoder = AutoEncoderCNN(image_height=128,
@@ -15,11 +24,10 @@ if __name__ == '__main__':
                                   early_stop=10,
                                   batch_size=16,
                                   lr=1e-3,
-                                  max_iter=1000,
-                                  verbose='vvv')
+                                  max_iter=1000)
 
     auto_encoder.fit(dataset, validation_split=0.15)
-    
+
     encoder = auto_encoder.get_encoder()
     decoder = auto_encoder.get_decoder()
 
@@ -31,5 +39,5 @@ if __name__ == '__main__':
         output = decoder(latents[i], use_cpu=True).squeeze(0).squeeze(0)
         imgout = Image.fromarray(np.uint8(255*output.detach().numpy()).transpose(), 'L')
         imgout.save('./results/output{}.png'.format(i))
-
-# %%
+    
+    print('done')

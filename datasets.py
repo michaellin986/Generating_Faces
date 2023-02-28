@@ -3,19 +3,33 @@ from tqdm import tqdm
 import os
 from PIL import Image
 import numpy as np
+import pandas as pd
 import torch
+import random
 
 
 class UKTDataset(Dataset):
 
     def __init__(self, data_path: str = "./archive/UKTFace/",
+                    limit=None,
                     image_height: int = 512,
                     image_width: int = 512):
 
         super(UKTDataset, self).__init__()
 
+        self.filenames = os.listdir(data_path)
+        self.filenames = [f for f in self.filenames if len(f.split('_'))==4]
+        random.shuffle(self.filenames)
+
+        if limit is not None:
+            self.filenames = self.filenames[0:limit]
+
+        self.age = [int(f.split('_')[0]) for f in self.filenames]
+        self.sex = [int(f.split('_')[1]) for f in self.filenames]
+        self.ethnicity = [int(f.split('_')[2]) for f in self.filenames]
+
         X = []
-        for f in tqdm(os.listdir(data_path)[0:20000], desc="Loading UKT dataset to memory"):
+        for f in tqdm(self.filenames, desc="Loading UKT dataset to memory"):
             filename = os.path.join(data_path, f)
             image = Image.open(filename)
             # resize image
